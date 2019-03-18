@@ -129,7 +129,6 @@ end
 
 %% Restriction operator  
 ff = res(2:nx+1,:);
-
  for l = ngrid%:-1:ngrid-1
     nnx = nxk(l);
     nny = nyk(l);
@@ -138,34 +137,11 @@ ff = res(2:nx+1,:);
     ncy = nyk(l-1);
     resc = zeros(ncx,ncy);
     resc = restrct(ff,resc,nnx,nny,ncx,ncy);
-    [nwc,nc,nec,wc,cec,ec,sec,sc,swc] = coeff_stencil_coarse(nw,n,ne,w,ce,e,se,s,sw,ncx,ncy,nnx,nny);%;(A,mu,phi,der1,detady,x,y,ncx,ncy);
-    niter = 10;
-    for iter=1:niter
-    for i=2:ncx-1
-        for j=2:ncy-1
-            term_rhs = wc(i,j)*resc(i-1,j) + ec(i,j)*resc(i+1,j) + nec(i,j)*resc(i+1,j+1)...
-                + nwc(i,j)*resc(i-1,j+1) + sec(i,j)*resc(i+1,j-1) + swc(i,j)*resc(i-1,j-1);
-            
-            d(j) = -term_rhs;
-            
-            if (j==2)
-                d(j) = d(j) - sc(i,j)*resc(i,j-1) ;
-            elseif (j ==ncy-1)
-                d(j) = d(j) - nc(i,j)*resc(i,j+1) ;
-            end
-        end
-        
-        rescn = poisson_TDMA(resc,nc,cec,sc,i,ncy+1,d);
-    end
-      resc = rescn;
-    end
- end
-figure
-surf(resc);
-colorbar
-figure
-surf(rescn);
-colorbar
+    [nw,n,ne,w,ce,e,se,s,sw] = coeff_stencil(A,mu,phi,der1,detady,x,y,ncx,ncy);
+    
+ %  ff = resc;
+end
+
 % %% Coarse grid correction of the residual
 % %% Prolongation operator
 % % Consider two meshes VH(fine) and Vh(coarse). The prolongation operator

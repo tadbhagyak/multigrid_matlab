@@ -19,7 +19,7 @@ clc
 % ngrid -> number of levels in the multigrid solver
 
 iparam = [0,0,0,0,0,2,2,5,5,0,0];
-[f,res,X,Y,nx,ny] = multigrid(iparam);
+[f,res,resc,X,Y,nx,ny] = multigrid(iparam);
 
 %%Plotting and post processing
 %%
