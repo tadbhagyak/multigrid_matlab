@@ -1,0 +1,104 @@
+clear all
+close all
+clc
+
+%% Parameters (Taken from mudpack)
+% for the finest grid size (nx,ny) on a domain [xa,xb] x [yc,yd]
+% ixp -> no.of points of coarsest x grid
+% jyq -> no. of points on coarsest y grid
+% iex -> exponent used in finding the number of grid points in x
+% jey -> exponent used in finding the number of grid points in y
+% nfx = ixp*(2**(iex-1)) + 1
+% nfy = jyq*(2**(jey-1)) + 1
+% ngrid -> number of levels in the multigrid solver
+iparam = [0,0,0,0,0,2,2,5,5,0,0];
+%
+% Boundary condition flags
+%
+nxa = iparam(2);
+nxb = iparam(3);
+nyc = iparam(4);
+nyd = iparam(5);
+
+%
+% Grid size parameters
+%
+ixp = iparam(6);
+jyq = iparam(7);
+iex = iparam(8);
+jey = iparam(9);
+ngrid = max(iex,jey);
+nfx = iparam(10);
+nfy = iparam(11);
+
+% Set subgrid sizes
+for k=1:ngrid
+    nxk(k) = ixp*2^(max(k+iex-ngrid,1)-1)+1;
+    nyk(k) = jyq*2^(max(k+jey-ngrid,1)-1)+1;
+end
+
+% %% Grid clustering function
+% [Xc,Yc] = meshgrid(x,eta);
+% for i=1:nx+2
+%     for j=1:ny
+%         Yc(j,i) = Yc(j,i) + phi(i);
+%       %  Y(j,i) = Y(j,i) + phi(i);
+%     end
+% end
+
+%% Multigrid options - Main steps in Multigrid cycling
+% transferc2f - > transfer from coarse mesh to fine
+% rst2d -> restrict residual using full weighting operator fine to coarse
+% prolong -> interpolate from coarse to fine
+% The main idea in multigrid is to perform some sweeps at finest grid,
+% restrict the residual to coarse grid, perform some more sweeps at coarser
+% level, the interpolate to finer grid and perform some more sweeps (V cycle)
+
+
+% Full multigrid starts out by solving the problem at the coarsest grid
+% and interpolating the solution to the coarse grid. Use this interpolation
+% as the approximation for post smoothing at finest grid
+%     o (h = 0.5*coarse) 
+%    .
+%   .
+%  x (H = coarsest)
+
+nx = nxk(1); %finest grid points in x
+ny = nyk(1); %finest grid points in y
+T = zeros(nx+2,ny+2); Tn = T; res= T;
+niter = 1000;
+
+% Setup the coarsest grid
+psi = ones(nx+2,ny+2);
+[x,y,eta,detady,der1,L] = gridCluster(nx,ny);
+phi = surfTop(x,L,nx);
+% Stencil and Coefficients for the material matrix
+[A,mu,psi] = materialMatrix(x,L,nx,ny);
+[nw,n,ne,w,ce,e,se,s,sw] = coeff_stencil(A,mu,phi,der1,detady,x,y,nx,ny);
+
+% Call the relaxation solver
+[Tn,rn] = postSmooth(T,nx,ny,nw,n,ne,e,ce,w,sw,s,se,niter);
+Tc = Tn(2:nx+1,1:ny);
+
+% Interpolate the solution to the next finest grid
+nnx = nxk(2);
+nny = nyk(2);
+ncx = nxk(1);
+ncy = nyk(1);
+Tf = zeros(nnx,nny);
+Tf = prolong(Tf,Tc,nnx,nny,ncx,ncy);
+
+% Post smooth on the same grid
+[x,y,eta,detady,der1,L] = gridCluster(nnx,nny);
+phi = surfTop(x,L,nnx);
+[A,mu,psi] = materialMatrix(x,L,nnx,nny);
+[nw,n,ne,w,ce,e,se,s,sw] = coeff_stencil(A,mu,phi,der1,detady,x,y,nnx,nny);
+T_temp = zeros(nnx+2,nny+2);
+T_temp(2:nnx+1,1:nny) = Tf;
+T_temp(1,:) = T_temp(nnx,:);
+T_temp(nnx+2,:) = T_temp(3,:);
+[Ts,rs] = postSmooth(T_temp,nnx,nny,nw,n,ne,e,ce,w,sw,s,se,1);
+
+%% Set up V cycle of multigrid 
+rs_k = rs(2:nn)
+

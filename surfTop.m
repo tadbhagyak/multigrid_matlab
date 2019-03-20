@@ -1,7 +1,7 @@
 function [phi] = surfTop(x,L,nx)
 %% Surface function
 phi = zeros(nx+2,1);
-amp = -0.003;
+amp = -0.00;
 for i =2:nx+1
     % phi(i) = amp*exp(-66.0*((x(i)-0.002)/L)^2)...
     %  +amp*exp(-66.0*((x(i)+0.002)/L)^2);

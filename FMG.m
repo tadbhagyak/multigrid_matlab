@@ -1,0 +1,89 @@
+clear all
+close all
+clc
+
+%% Parameters (Taken from mudpack)
+% for the finest grid size (nx,ny) on a domain [xa,xb] x [yc,yd]
+% ixp -> no.of points of coarsest x grid
+% jyq -> no. of points on coarsest y grid
+% iex -> exponent used in finding the number of grid points in x
+% jey -> exponent used in finding the number of grid points in y
+% nfx = ixp*(2**(iex-1)) + 1
+% nfy = jyq*(2**(jey-1)) + 1
+% ngrid -> number of levels in the multigrid solver
+iparam = [0,0,0,0,0,2,2,5,5,0,0];
+%--------------------------------------------------------------------------
+% Boundary condition flags
+%--------------------------------------------------------------------------
+nxa = iparam(2);
+nxb = iparam(3);
+nyc = iparam(4);
+nyd = iparam(5);
+
+%--------------------------------------------------------------------------
+% Grid size parameters--
+%--------------------------------------------------------------------------
+ixp = iparam(6);
+jyq = iparam(7);
+iex = iparam(8);
+jey = iparam(9);
+ngrid = max(iex,jey);
+nfx = iparam(10);
+nfy = iparam(11);
+
+% Set subgrid sizes
+for k=1:ngrid
+    nxk(k) = ixp*2^(max(k+iex-ngrid,1)-1)+1;
+    nyk(k) = jyq*2^(max(k+jey-ngrid,1)-1)+1;
+end
+
+% %% Grid clustering function
+% [Xc,Yc] = meshgrid(x,eta);
+% for i=1:nx+2
+%     for j=1:ny
+%         Yc(j,i) = Yc(j,i) + phi(i);
+%       %  Y(j,i) = Y(j,i) + phi(i);
+%     end
+% end
+
+%% ------------------------------------------------------------------------
+% Multigrid options - Main steps in Multigrid cycling
+%--------------------------------------------------------------------------
+% transferc2f - > transfer from coarse mesh to fine
+% rst2d -> restrict residual using full weighting operator fine to coarse
+% prolong -> interpolate from coarse to fine
+% The main idea in multigrid is to perform some sweeps at finest grid,
+% restrict the residual to coarse grid, perform some more sweeps at coarser
+% level, the interpolate to finer grid and perform some more sweeps (V cycle)
+
+for kcycle = 1:2
+    %----------------------------------------------------------------------
+    % Full multigrid starts out by solving the problem at the coarsest grid
+    % and interpolating the solution to the coarse grid. Use this interpolation
+    % as the approximation for post smoothing at finest grid
+    %     o (h = 0.5*coarse)
+    %    .
+    %   .
+    %  x (H = coarsest)
+    %----------------------------------------------------------------------
+    
+    if (kcycle ==1)
+        % First cycle solves on coarsest grid
+        [Tf_ps,rs_ps] = cycle1(kcycle,nxk,nyk); 
+    
+    else
+        
+    %----------------------------------------------------------------------
+    % Interpolate to next finest grid
+    %----------------------------------------------------------------------
+    [T_fg] = interpSol(T_cg,nxk,nyk,kcycle);
+    %----------------------------------------------------------------------
+    % Set up V cycle of multigrid
+    %----------------------------------------------------------------------
+    [T_corr] = vcycle(T_fg,nxk,nyk,kcycle);
+    
+    % 1. storing res and delta at each grid
+    % 2. pre and post smoothing at each level. 
+    end
+end
+%%

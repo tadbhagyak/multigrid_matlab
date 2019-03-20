@@ -12,8 +12,10 @@ for i=2:nx+1
         fx3 = fx1;
         fx4 = fx2;
         
-        dy1 = y(j) - y(j-1);
-        if (j < ny) dy2 = y(j+1) - y(j);end
+        dy1 = 0;
+        dy2 = 0;
+        if (j > 1)  dy1 = abs(y(j) - y(j-1));end
+        if (j < ny) dy2 = abs(y(j+1) - y(j));end
         
         % Coefficents associated with phi_x T_X
         c1 = der1(j)*dy1/(4*dx) + der1(j-1)*dy1/(12*dx);
@@ -45,8 +47,8 @@ for i=2:nx+1
         w(i,j) = -m1*c1 - m3*c5 + c2_a1 + c2_a3;
         e(i,j) = -m2*c1 - m4*c5 + c2_a2 + c2_a4;
         
-        s(i,j) = m1*ce_1 + m3*ce_1 - 2*c2_a1 - 2*c2_a2;
-        n(i,j) = m2*ce_5 + m4*ce_5 - 2*c2_a3 - 2*c2_a4;
+        s(i,j) = m1*ce_1 + m2*ce_1 - 2*c2_a1 - 2*c2_a2;
+        n(i,j) = m3*ce_5 + m4*ce_5 - 2*c2_a3 - 2*c2_a4;
         
         ce(i,j) = (m1*c1 + m2*c1 + m3*c5 + m4*c5 + 2*c2_a1 + 2*c2_a2...
             + 2*c2_a3 + 2*c2_a4) - 2*(-fx1*m1 + fx2*m2 + fx3*m3 - fx4*m4)/4;
@@ -61,6 +63,22 @@ for i=2:nx+1
             s(i,j) = m1*ce_1 + m2*ce_1 - 2*c2_a1 - 2*c2_a2;
             n(i,j) = 0;
             ce(i,j) = (m1*c1 + m2*c1 + 2*c2_a1 + 2*c2_a2) - 2*(-fx1*m1 + fx2*m2)/4;
+        end
+        
+        if (j==1)
+            sw(i,j) = 0;%-m1*ce_1 - c2_a1 + 2*m1*fx1/4;
+            se(i,j) = 0;%-m2*ce_1 - c2_a2 - 2*m2*fx2/4;
+            nw(i,j) = -m3*ce_5 - c2_a3 - 2*m3*fx3/4;
+            ne(i,j) = -m4*ce_5 - c2_a4 + 2*m4*fx4/4;
+            
+            w(i,j) =  - m3*c5  + c2_a3;
+            e(i,j) =  - m4*c5 + c2_a4;
+            
+            s(i,j) = 0;%m1*ce_1 + m3*ce_1 - 2*c2_a1 - 2*c2_a2;
+            n(i,j) = m3*ce_5 + m4*ce_5 - 2*c2_a3 - 2*c2_a4;
+            
+            ce(i,j) = (m3*c5 + m4*c5 ...
+                + 2*c2_a3 + 2*c2_a4) - 2*(fx3*m3 - fx4*m4)/4;
         end
     end
 end
