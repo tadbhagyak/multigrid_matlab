@@ -1,8 +1,8 @@
-function [Tf] = interpSol(Tc,nxk,nyk,kcycle)
+function [Tf] = interpSol(Tc,nxk,nyk,cur_grid)
 
-nnx = nxk(kcycle+1);
-nny = nyk(kcycle+1);
-ncx = nxk(kcycle);
-ncy = nyk(kcycle);
+nnx = nxk(cur_grid+1);
+nny = nyk(cur_grid+1);
+ncx = nxk(cur_grid);
+ncy = nyk(cur_grid);
 Tf = zeros(nnx,nny);
 Tf = prolong(Tf,Tc,nnx,nny,ncx,ncy);

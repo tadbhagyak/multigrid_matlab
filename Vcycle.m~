@@ -5,7 +5,7 @@ function [Tcorr,delta,r_cg] = Vcycle(res_fg,nxk,nyk,cur_grid,niter)
 %       o    o
 %        .  .
 % deltah  x
-% 
+%
 
 % Restriction operator
 ff = res_fg;
@@ -89,12 +89,10 @@ for m = 1:cur_grid
     cg = m+1;
     nnx = nxk(cg);
     nny = nyk(cg);
-    
     % Number of points on coarsest grid
     ncx = nxk(m);
     ncy = nyk(m);
     deltaf = zeros(nnx,nny);
-    
     if (m==1)
         deltaf = prolong(deltaf,delta_1,nnx,nny,ncx,ncy);
         delta_2(2:nnx+1,1:nny) = delta_2(2:nnx+1,1:nny) + deltaf;
@@ -108,13 +106,11 @@ for m = 1:cur_grid
         delta_3(1,1:nny) = delta_3(nnx,1:nny);
         delta_3(nnx+2,1:nny) = delta_3(3,1:nny);
         [delta_3,res_ps] = postSmooth(delta_3,nxk,nyk,cg,niter);
-        
     elseif (m==3)
         deltaf = prolong(deltaf,delta_3,nnx,nny,ncx,ncy);
         delta_4(2:nnx+1,1:nny) = delta_4(2:nnx+1,1:nny) + deltaf;
         delta_4(1,1:nny) = delta_4(nnx,1:nny);
         delta_4(nnx+2,1:nny) = delta_4(3,1:nny);
-        [delta_4,res_ps] = postSmooth(delta_4,nxk,nyk,cg,niter);
+        [delta_4,res_ps] = postSmooth(delta_4-,nxk,nyk,cg,niter);
         
     end
-end

@@ -3,32 +3,24 @@ function [Tf_ps,rs_ps] = cycle1(nxk,nyk,kcycle)
     ny = nyk(kcycle); %finest grid points in y
     T = zeros(nx+2,ny+2); Tn = T; res= T;
     niter = 1000;
-    
-    % Setup the coarsest grid
-    psi = ones(nx+2,ny+2);
-    [x,y,eta,detady,der1,L] = gridCluster(nx,ny);
-    phi = surfTop(x,L,nx);
-    % Stencil and Coefficients for the material matrix
-    [A,mu,psi] = materialMatrix(x,L,nx,ny);
-    [nw,n,ne,w,ce,e,se,s,sw] = coeff_stencil(A,mu,phi,der1,detady,x,y,nx,ny);
-    
-    % Call the relaxation solver
-    [Tn,rn] = postSmooth(T,nx,ny,nw,n,ne,e,ce,w,sw,s,se,niter);
+       
+    % Call the relaxation solver on the coarsest grid
+    cur_grid = kcycle;
+    [Tn,res] = postSmooth(T,nxk,nyk,cur_grid,niter);
     Tc = Tn(2:nx+1,1:ny);
     
     % Interpolate the solution to the next finest grid
     Tf = interpSol(Tc,nxk,nyk,kcycle);
     
-    % Post smooth on the same grid
-    [x,y,eta,detady,der1,L] = gridCluster(nnx,nny);
-    phi = surfTop(x,L,nnx);
-    [A,mu,psi] = materialMatrix(x,L,nnx,nny);
-    [nw,n,ne,w,ce,e,se,s,sw] = coeff_stencil(A,mu,phi,der1,detady,x,y,nnx,nny);
+    % Post smooth on the finer grid
+    cur_grid = kcycle+1;
+    nnx = nxk(cur_grid);
+    nny = nyk(cur_grid);
     T_temp = zeros(nnx+2,nny+2);
     T_temp(2:nnx+1,1:nny) = Tf;
     T_temp(1,:) = T_temp(nnx,:);
     T_temp(nnx+2,:) = T_temp(3,:);
-    [Ts,rs] = postSmooth(T_temp,nnx,nny,nw,n,ne,e,ce,w,sw,s,se,1);
+    [Ts_fg,res_fg] = postSmooth(T_temp,nxk,nyk,cur_grid,niter);
     
     %% Set up V cycle of multigrid
     % rs  o        o (Ts + Ih*deltah)
@@ -36,13 +28,10 @@ function [Tf_ps,rs_ps] = cycle1(nxk,nyk,kcycle)
     %       .    .
     %        .  .
     % deltah  x
-    %
-    rs_k = rs(2:nnx+1,1:nny);
     % Restriction operator
-    ff = rs_k;
     cur_grid = kcycle+1;
     
-    for l = cur_grid:kcycle+1
+    for l = cur_grid:2
         
         nnx = nxk(l);
         nny = nyk(l);
@@ -53,7 +42,7 @@ function [Tf_ps,rs_ps] = cycle1(nxk,nyk,kcycle)
         resc = zeros(ncx,ncy);
         
         % restrict the residual
-        resc = restrct(ff,resc,nnx,nny,ncx,ncy); % (ncx,ncy)
+        resc = restrct(res_fg,resc,nnx,nny,ncx,ncy); % (ncx,ncy)
         res1 = resc;
         
         % Regrid and find points on the new grid
@@ -67,7 +56,7 @@ function [Tf_ps,rs_ps] = cycle1(nxk,nyk,kcycle)
         [nwc,nc,nec,wc,cec,ec,sec,sc,swc] = coeff_stencil(Ac,muc,phic,der1c,detadyc,xc,yc,ncx,ncy);
         
         % Smooth the residual / Solve for delta-H
-        niter = 10;
+        niter = 1;
         if (l == 2) niter = 10000; end
         [deltac] = smoothRes(resc,ncx,ncy,nwc,nc,nec,ec,cec,wc,swc,sc,sec,niter);
         ff = zeros(ncx,ncy);
@@ -95,16 +84,18 @@ function [Tf_ps,rs_ps] = cycle1(nxk,nyk,kcycle)
     %   I(h-H) : VH ---> Vh
     niter = 1;
     for m = 1%:2
-        nnx = nxk(m+1);
-        nny = nyk(m+1);
+        cur_grid = m+1;
+        nnx = nxk(cur_grid);
+        nny = nyk(cur_grid);
         % Number of points on coarsest grid
         ncx = nxk(m);
         ncy = nyk(m);
         deltaf = zeros(nnx,nny);
         deltaf = prolong(deltaf,delta_cg,nnx,nny,ncx,ncy);
         
-        Ts(2:nnx+1,1:nny) = Ts(2:nnx+1,1:nny) + deltaf;
-        Ts(1,1:nny) = Ts(nnx,1:nny);
-        Ts(nnx+2,1:nny) = Ts(3,1:nny);
-        [Tf_ps,rf_ps] = postSmooth(Ts,nnx,nny,nw,n,ne,e,ce,w,sw,s,se,niter);
+        Ts_fg(2:nnx+1,1:nny) = Ts_fg(2:nnx+1,1:nny) + deltaf;
+        Ts_fg(1,1:nny) = Ts_fg(nnx,1:nny);
+        Ts_fg(nnx+2,1:nny) = Ts_fg(3,1:nny);
+        [Tf_ps,rs_ps] = postSmooth(Ts_fg,nxk,nyk,cur_grid,niter);
+        %Tf_ps = Tf_p(2:nnx+1,1:nny);      
     end

@@ -56,7 +56,7 @@ end
 % restrict the residual to coarse grid, perform some more sweeps at coarser
 % level, the interpolate to finer grid and perform some more sweeps (V cycle)
 
-for kcycle = 1:2
+for kcycle = 1:1
     %----------------------------------------------------------------------
     % Full multigrid starts out by solving the problem at the coarsest grid
     % and interpolating the solution to the coarse grid. Use this interpolation
@@ -68,41 +68,33 @@ for kcycle = 1:2
     %----------------------------------------------------------------------
     
     if (kcycle ==1)
-        %------------------------------------------------------------------
         % First cycle solves on coarsest grid using 1000 LR iterations
-        %------------------------------------------------------------------
         [T_cg,rs_ps] = cycle1(nxk,nyk,kcycle);
         nx = nxk(kcycle+1);
         ny = nyk(kcycle+1);
         T_c = T_cg(2:nx+1,1:ny);
         
-        %------------------------------------------------------------------
+        %----------------------------------------------------------------------
         % Interpolate to next finest grid
-        %------------------------------------------------------------------
+        %----------------------------------------------------------------------
         cur_grid = kcycle+1;
-        [T_f] = interpSol(T_c,nxk,nyk,cur_grid); 
+        [T_f] = interpSol(T_c,nxk,nyk,cur_grid);
         
     else
         
-        %------------------------------------------------------------------
+        %----------------------------------------------------------------------
         % Pre-Smoothing before V cycle
-        %------------------------------------------------------------------
+        %----------------------------------------------------------------------
         cur_grid = kcycle+1;
-        nx = nxk(cur_grid);
-        ny = nyk(cur_grid);
-        T_curg = zeros(nx+2,ny+2);
-        T_curg(2:nx+1,1:ny) = T_f;
-        T_curg(1,:) = T_curg(nx,:);
-        T_curg(nx+2,:) = T_curg(3,:);
-        [Tn_fg,res_fg] = postSmooth(T_curg,nxk,nyk,cur_grid,1);
-        
-        %------------------------------------------------------------------
-        % Set up V cycle of multigrid
-        %------------------------------------------------------------------
-        [T_corr,delta,r_cg] = Vcycle(res_fg,nxk,nyk,cur_grid,1);
-        
-        % 1. storing res and delta at each grid
-        % 2. pre and post smoothing at each level.
+        [Tn_fg,res_fg] = postSmooth(T_fg,nxk,nyk,cur_grid,1);
+    
+    %----------------------------------------------------------------------
+    % Set up V cycle of multigrid
+    %----------------------------------------------------------------------
+    %[T_corr] = vcycle(res_fg,nxk,nyk,cur_grid,niter);
+    
+    % 1. storing res and delta at each grid
+    % 2. pre and post smoothing at each level. 
     end
 end
 %%
